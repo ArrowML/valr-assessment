@@ -3,7 +3,8 @@ package com.exchange.handler
 import com.exchange.model.ApiResponse
 import com.exchange.model.Payment
 import com.exchange.model.PaymentStatus
-import com.exchange.repository.PaymentRepository
+import com.exchange.repository.payment.PaymentRepository
+import com.exchange.repository.quote.QuoteRepository
 import com.exchange.validation.PaymentValidator
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -14,7 +15,8 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 
 class PaymentHandler(
-    private val repository: PaymentRepository,
+    private val paymentRepository: PaymentRepository,
+    private val quoteRepository: QuoteRepository,
     private val validator: PaymentValidator
 ) {
 
@@ -30,7 +32,7 @@ class PaymentHandler(
             val quoteId = body.getString("quoteId")
             val customerReference = body.getString("customerReference")
 
-            val quote = repository.findQuote(quoteId)
+            val quote = quoteRepository.findQuote(quoteId)
             if (quote == null) {
                 ctx.response()
                     .setStatusCode(404)
@@ -53,7 +55,7 @@ class PaymentHandler(
                 customerReference = customerReference
             )
 
-            repository.savePayment(payment)
+            paymentRepository.savePayment(payment)
 
             logger.info("Created payment {} for quote {}", payment.id, quoteId)
 
@@ -75,7 +77,7 @@ class PaymentHandler(
         try {
             val paymentId = ctx.pathParam("id")
 
-            val payment = repository.findPayment(paymentId)
+            val payment = paymentRepository.findPayment(paymentId)
             if (payment == null) {
                 ctx.response()
                     .setStatusCode(404)
@@ -94,12 +96,12 @@ class PaymentHandler(
 
             payment.status = PaymentStatus.PROCESSING
             payment.updatedAt = Instant.now()
-            repository.updatePayment(payment)
+            paymentRepository.updatePayment(payment)
 
             // Simulate async processing — in real life this would be an async operation
             payment.status = PaymentStatus.COMPLETED
             payment.updatedAt = Instant.now()
-            repository.updatePayment(payment)
+            paymentRepository.updatePayment(payment)
 
             logger.info("Executed payment {}", paymentId)
 
@@ -121,7 +123,7 @@ class PaymentHandler(
         try {
             val paymentId = ctx.pathParam("id")
 
-            val payment = repository.findPayment(paymentId)
+            val payment = paymentRepository.findPayment(paymentId)
             if (payment == null) {
                 ctx.response()
                     .setStatusCode(404)

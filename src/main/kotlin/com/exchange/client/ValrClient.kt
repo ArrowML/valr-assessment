@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.net.URL
 
-class ValrClient {
+class ValrClient : ExchangeClient {
 
     private val logger = LoggerFactory.getLogger(ValrClient::class.java)
     private val objectMapper = ObjectMapper().registerKotlinModule()
@@ -18,7 +18,7 @@ class ValrClient {
      * Fetches the current market price for a currency pair.
      *
      */
-    fun getMarketPrice(currencyPair: String): BigDecimal {
+    override fun getMarketPrice(currencyPair: String): BigDecimal {
         logger.info("Fetching price for {}", currencyPair)
 
         val url = "$baseUrl/$currencyPair/marketsummary"

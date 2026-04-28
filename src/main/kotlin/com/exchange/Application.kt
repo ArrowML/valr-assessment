@@ -4,7 +4,8 @@ import com.exchange.router.PaymentRouter
 import com.exchange.handler.QuoteHandler
 import com.exchange.handler.PaymentHandler
 import com.exchange.client.ValrClient
-import com.exchange.repository.PaymentRepository
+import com.exchange.repository.payment.InMemoryPaymentRepository
+import com.exchange.repository.quote.InMemoryQuoteRepository
 import com.exchange.validation.PaymentValidator
 import io.vertx.core.Vertx
 import org.slf4j.LoggerFactory
@@ -14,11 +15,13 @@ private val logger = LoggerFactory.getLogger("Application")
 fun main() {
     val vertx = Vertx.vertx()
 
-    val valrClient = ValrClient()
-    val paymentRepository = PaymentRepository()
+    val exchangeClient = ValrClient()
+    val paymentRepository = InMemoryPaymentRepository()
     val paymentValidator = PaymentValidator()
-    val quoteHandler = QuoteHandler(valrClient, paymentRepository)
-    val paymentHandler = PaymentHandler(paymentRepository, paymentValidator)
+    val quoteRepository = InMemoryQuoteRepository()
+
+    val quoteHandler = QuoteHandler(exchangeClient, quoteRepository)
+    val paymentHandler = PaymentHandler(paymentRepository, quoteRepository, paymentValidator)
 
     val router = PaymentRouter.create(vertx, quoteHandler, paymentHandler)
 

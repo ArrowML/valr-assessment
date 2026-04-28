@@ -1,7 +1,8 @@
 package com.exchange.handler
 
 import com.exchange.client.ValrClient
-import com.exchange.repository.PaymentRepository
+import com.exchange.repository.payment.InMemoryPaymentRepository
+import com.exchange.repository.quote.InMemoryQuoteRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -9,7 +10,6 @@ import io.vertx.core.Vertx
 import io.vertx.ext.web.client.WebClient
 import io.vertx.junit5.VertxExtension
 import io.vertx.junit5.VertxTestContext
-import org.assertj.core.api.Assertions.assertThat
 import com.exchange.router.PaymentRouter
 import com.exchange.validation.PaymentValidator
 
@@ -21,10 +21,11 @@ class QuoteHandlerTest {
     @BeforeEach
     fun setUp(vertx: Vertx, testContext: VertxTestContext) {
         val valrClient = ValrClient()
-        val repository = PaymentRepository()
+        val paymentRepository = InMemoryPaymentRepository()
+        val quoteRepository = InMemoryQuoteRepository()
         val validator = PaymentValidator()
-        val quoteHandler = QuoteHandler(valrClient, repository)
-        val paymentHandler = PaymentHandler(repository, validator)
+        val quoteHandler = QuoteHandler(valrClient, quoteRepository)
+        val paymentHandler = PaymentHandler(paymentRepository, quoteRepository, validator)
         val router = PaymentRouter.create(vertx, quoteHandler, paymentHandler)
 
         client = WebClient.create(vertx)

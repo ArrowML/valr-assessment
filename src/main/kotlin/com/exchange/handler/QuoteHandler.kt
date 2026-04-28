@@ -1,9 +1,9 @@
 package com.exchange.handler
 
-import com.exchange.client.ValrClient
+import com.exchange.client.ExchangeClient
 import com.exchange.model.ApiResponse
 import com.exchange.model.Quote
-import com.exchange.repository.PaymentRepository
+import com.exchange.repository.quote.QuoteRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -13,8 +13,8 @@ import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 
 class QuoteHandler(
-    private val valrClient: ValrClient,
-    private val repository: PaymentRepository
+    private val exchangeClient: ExchangeClient,
+    private val quoteRepository: QuoteRepository,
 ) {
 
     private val logger = LoggerFactory.getLogger(QuoteHandler::class.java)
@@ -32,7 +32,7 @@ class QuoteHandler(
             val payAmount = BigDecimal(body.getString("payAmount"))
             val side = body.getString("side")
 
-            val marketPrice = valrClient.getMarketPrice(currencyPair)
+            val marketPrice = exchangeClient.getMarketPrice(currencyPair)
 
             val fee = BigDecimal(payAmount.toDouble() * brokerageFeePercent)
             val netAmount = payAmount.subtract(fee)
@@ -47,7 +47,7 @@ class QuoteHandler(
                 side = side
             )
 
-            repository.saveQuote(quote)
+            quoteRepository.saveQuote(quote)
 
             logger.info("Created quote {} for {} {}", quote.id, currencyPair, payAmount)
 
