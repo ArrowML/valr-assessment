@@ -15,13 +15,9 @@ import java.math.BigDecimal
 class QuoteHandler(
     private val exchangeClient: ExchangeClient,
     private val quoteRepository: QuoteRepository,
+    private val objectMapper: ObjectMapper,
 ) {
-
     private val logger = LoggerFactory.getLogger(QuoteHandler::class.java)
-    private val objectMapper = ObjectMapper()
-        .registerKotlinModule()
-        .registerModule(JavaTimeModule())
-        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     private val brokerageFeePercent = 0.015 // 1.5% fee
 

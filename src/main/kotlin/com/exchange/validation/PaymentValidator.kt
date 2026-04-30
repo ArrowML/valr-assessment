@@ -10,6 +10,10 @@ class PaymentValidator {
             errors.add("quoteId is required")
         }
 
+        //Quote is valid UUID
+
+        //Trim whitespace
+
         if (customerReference.isNullOrBlank()) {
             errors.add("customerReference is required")
         }

@@ -7,7 +7,9 @@ enum class PaymentStatus {
     PENDING,
     PROCESSING,
     COMPLETED,
-    FAILED
+    FAILED,
+    REFUND_PROCESSING,
+    REFUNDED
 }
 
 data class Payment(
