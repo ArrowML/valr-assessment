@@ -1,23 +1,39 @@
 package com.exchange.validation
 
+import com.exchange.handler.CreatePaymentRequest
+
+data class ValidatedCreatePayment(
+    val quoteId: String,
+    val customerReference: String,
+)
+
 class PaymentValidator {
 
-    fun validate(quoteId: String?, customerReference: String?): List<String> {
+    fun validate(request: CreatePaymentRequest): ValidationResult<ValidatedCreatePayment> {
         val errors = mutableListOf<String>()
 
-        // Incomplete validation — candidate should notice gaps here
-        if (quoteId.isNullOrBlank()) {
-            errors.add("quoteId is required")
+        val quoteId = request.quoteId?.trim()?.takeIf { it.isNotBlank() }
+        when {
+            quoteId == null ->
+                errors.add("quoteId is required")
+            !UuidValidation.isValidUuid(quoteId) ->
+                errors.add("quoteId must be a valid UUID")
         }
 
-        //Quote is valid UUID
-
-        //Trim whitespace
-
-        if (customerReference.isNullOrBlank()) {
+        val customerReference = request.customerReference?.trim()?.takeIf { it.isNotBlank() }
+        if (customerReference == null) {
             errors.add("customerReference is required")
         }
 
-        return errors
+        return if (errors.isEmpty()) {
+            ValidationResult.Valid(
+                ValidatedCreatePayment(
+                    quoteId = quoteId!!,
+                    customerReference = customerReference!!,
+                )
+            )
+        } else {
+            ValidationResult.Invalid(errors)
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.exchange.service
 
 import com.exchange.model.Payment
 import com.exchange.model.PaymentStatus
+import com.exchange.model.QuoteStatus
 import com.exchange.repository.payment.PaymentRepository
 import com.exchange.repository.quote.QuoteRepository
 import org.slf4j.LoggerFactory
@@ -16,8 +17,17 @@ class PaymentService(
 
     fun createPayment(quoteId: String, customerReference: String): Payment {
         val quote = quoteRepository.findQuote(quoteId)
+            ?: throw QuoteNotFoundException(quoteId)
 
-        // TODO: Validated quote state
+        if (quote.status != QuoteStatus.ACTIVE) {
+            throw InvalidQuoteState(quoteId, "quote is ${quote.status}")
+        }
+        if (Instant.now().isAfter(quote.expiresAt)) {
+            throw InvalidQuoteState(quoteId, "quote expired at ${quote.expiresAt}")
+        }
+
+        quote.status = QuoteStatus.CLAIMED
+        quoteRepository.updateQuote(quote)
 
         val payment = Payment(
             quoteId = quoteId,
@@ -33,6 +43,9 @@ class PaymentService(
         val payment = paymentRepository.findPayment(paymentId)
             ?: throw PaymentNotFoundException(paymentId)
 
+        val quote = quoteRepository.findQuote(payment.quoteId)
+            ?: throw QuoteNotFoundException(payment.quoteId)
+
         when (payment.status) {
             PaymentStatus.COMPLETED -> return payment
             PaymentStatus.PENDING -> {
@@ -44,6 +57,9 @@ class PaymentService(
                 payment.status = PaymentStatus.COMPLETED
                 payment.updatedAt = Instant.now()
                 paymentRepository.updatePayment(payment)
+
+                quote.status = QuoteStatus.COMPLETE
+                quoteRepository.updateQuote(quote)
 
                 logger.info("Executed payment {}", paymentId)
 

@@ -4,6 +4,7 @@ import com.exchange.handler.PaymentHandler
 import com.exchange.handler.QuoteHandler
 import com.exchange.model.ApiResponse
 import com.exchange.service.InvalidPaymentStatus
+import com.exchange.service.InvalidQuoteState
 import com.exchange.service.PaymentNotFoundException
 import com.exchange.service.QuoteNotFoundException
 import com.exchange.service.ValidationException
@@ -43,8 +44,6 @@ object PaymentRouter {
 
     private fun handleFailure(ctx: RoutingContext, objectMapper: ObjectMapper) {
         val failure = ctx.failure()
-        logger.error("Request failed: ${ctx.request().method()} ${ctx.request().path()}", failure)
-
         val (status, body) = when (failure) {
             is QuoteNotFoundException ->
                 404 to ApiResponse.error<Nothing>(failure.message ?: "Quote not found")
@@ -52,10 +51,21 @@ object PaymentRouter {
                 404 to ApiResponse.error<Nothing>(failure.message ?: "Payment not found")
             is ValidationException ->
                 400 to ApiResponse.error<Nothing>(failure.errors.joinToString(", "))
+            is IllegalArgumentException ->
+                400 to ApiResponse.error<Nothing>(failure.message ?: "Invalid input")
             is InvalidPaymentStatus ->
                 422 to ApiResponse.error<Nothing>(failure.message ?: "Payment already in progress")
+            is InvalidQuoteState ->
+                422 to ApiResponse.error<Nothing>(failure.message ?: "Quote is not usable")
             else ->
                 500 to ApiResponse.error<Nothing>("Internal server error")
+        }
+
+        val requestLine = "${ctx.request().method()} ${ctx.request().path()}"
+        if (status >= 500) {
+            logger.error("Request failed [{}]: {}", status, requestLine, failure)
+        } else {
+            logger.warn("Request rejected [{}]: {} — {}", status, requestLine, failure?.message)
         }
 
         ctx.json(status, body, objectMapper)

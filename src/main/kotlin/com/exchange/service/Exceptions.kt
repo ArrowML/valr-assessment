@@ -6,3 +6,4 @@ class QuoteNotFoundException(quoteId: String) : PaymentException("Quote not foun
 class ValidationException(val errors: List<String>) : PaymentException("Validation failed: ${errors.joinToString()}")
 class PaymentNotFoundException(paymentId: String) : PaymentException("Payment not found: $paymentId")
 class InvalidPaymentStatus(paymentId: String) : PaymentException("Payment already processed: $paymentId")
+class InvalidQuoteState(quoteId: String, reason: String) : PaymentException("Quote $quoteId is not usable: $reason")

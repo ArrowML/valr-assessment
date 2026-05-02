@@ -1,8 +1,10 @@
 package com.exchange.validation
 
+import com.exchange.handler.CreatePaymentRequest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.assertj.core.api.Assertions.assertThat
+import java.util.UUID
 
 class PaymentValidatorTest {
 
@@ -15,13 +17,27 @@ class PaymentValidatorTest {
 
     @Test
     fun `should pass validation for valid input`() {
-        val errors = validator.validate("quote-123", "customer-ref")
-        assertThat(errors).isEmpty()
+        val request = CreatePaymentRequest(
+            quoteId = UUID.randomUUID().toString(),
+            customerReference = "customer-ref",
+        )
+        val result = validator.validate(request)
+        assertThat(result).isInstanceOf(ValidationResult.Valid::class.java)
     }
 
     @Test
     fun `should fail when quoteId is null`() {
-        val errors = validator.validate(null, "customer-ref")
-        assertThat(errors).contains("quoteId is required")
+        val request = CreatePaymentRequest(quoteId = null, customerReference = "customer-ref")
+        val result = validator.validate(request)
+        assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
+        assertThat((result as ValidationResult.Invalid).errors).contains("quoteId is required")
+    }
+
+    @Test
+    fun `should fail when quoteId is not a valid UUID`() {
+        val request = CreatePaymentRequest(quoteId = "not-a-uuid", customerReference = "customer-ref")
+        val result = validator.validate(request)
+        assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
+        assertThat((result as ValidationResult.Invalid).errors).contains("quoteId must be a valid UUID")
     }
 }

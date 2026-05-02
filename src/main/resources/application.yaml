@@ -1,0 +1,15 @@
+server:
+  port: 8080
+
+exchange:
+  baseUrl: https://api.valr.com/v1/public
+
+quotes:
+  supportedCurrencyPairs:
+    - BTCZAR
+    - ETHZAR
+    - USDCZAR
+  ttlSeconds: 120
+
+brokerage:
+  feePercent: 0.015

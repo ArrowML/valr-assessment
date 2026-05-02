@@ -5,10 +5,10 @@ import com.exchange.router.json
 import com.exchange.service.PaymentService
 import com.exchange.service.ValidationException
 import com.exchange.validation.PaymentValidator
+import com.exchange.validation.UuidValidation
+import com.exchange.validation.ValidationResult
 import com.fasterxml.jackson.databind.ObjectMapper
-
 import io.vertx.ext.web.RoutingContext
-import org.slf4j.LoggerFactory
 
 class PaymentHandler(
     private val paymentService: PaymentService,
@@ -16,21 +16,16 @@ class PaymentHandler(
     private val validator: PaymentValidator,
 ) {
 
-    private val logger = LoggerFactory.getLogger(PaymentHandler::class.java)
-
     fun createPayment(ctx: RoutingContext) {
         try {
-            val body = ctx.body().asJsonObject()
-            val quoteId = body.getString("quoteId")
-            val customerReference = body.getString("customerReference")
+            val request = objectMapper.readValue(ctx.body().asString(), CreatePaymentRequest::class.java)
 
-            val validationErrors = validator.validate(quoteId, customerReference)
-            if (validationErrors.isNotEmpty()) {
-                throw ValidationException(validationErrors)
+            val validated = when (val result = validator.validate(request)) {
+                is ValidationResult.Invalid -> throw ValidationException(result.errors)
+                is ValidationResult.Valid -> result.value
             }
 
-            val payment = paymentService.createPayment(quoteId, customerReference)
-
+            val payment = paymentService.createPayment(validated.quoteId, validated.customerReference)
             ctx.json(201, ApiResponse.ok(payment), objectMapper)
 
         } catch (e: Exception) {
@@ -41,10 +36,11 @@ class PaymentHandler(
     fun executePayment(ctx: RoutingContext) {
         try {
             val paymentId = ctx.pathParam("id")
+            UuidValidation.requireValidUuid(paymentId, "paymentId")
+
             val payment = paymentService.executePayment(paymentId)
             ctx.json(200, ApiResponse.ok(payment), objectMapper)
         } catch (e: Exception) {
-            logger.error("Failed to execute payment", e)
             ctx.fail(e)
         }
     }
@@ -52,6 +48,8 @@ class PaymentHandler(
     fun getPayment(ctx: RoutingContext) {
         try {
             val paymentId = ctx.pathParam("id")
+            UuidValidation.requireValidUuid(paymentId, "paymentId")
+
             val payment = paymentService.getPayment(paymentId)
             ctx.json(200, ApiResponse.ok(payment), objectMapper)
         } catch (e: Exception) {
@@ -62,10 +60,11 @@ class PaymentHandler(
     fun getPaymentStatus(ctx: RoutingContext) {
         try {
             val paymentId = ctx.pathParam("id")
+            UuidValidation.requireValidUuid(paymentId, "paymentId")
+
             val payment = paymentService.getPayment(paymentId)
             ctx.json(200, ApiResponse.ok(payment.status), objectMapper)
         } catch (e: Exception) {
-            logger.error("Failed to get payment status", e)
             ctx.fail(e)
         }
     }
