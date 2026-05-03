@@ -11,30 +11,33 @@ Updated `build.grandle.kts` to JDK version 21 to match my local
 - Quote Calculation only correct for BUY
 
 ### Status endpoint
-- Since this status of a payment is really just a subset of the get payment endpoint data, I figured this would go through a very similar flow, and tried to reuse functionality
+The requirement to respond with payment history made me think keeping track using events would be the easiest way to track the state transitions, essentially capturing an event with every update. In the real DB this would be done using transactions, but for this simple example I just implemented an additional map in the in memory DB.
  
 ### Refund endpoint
-- Took some time to think about the implications of a refund.
-- Refund implies customers funds are returned, but goods are returned to vendor
-- Crypto needs to factor in the slippage during that time it was purchased and the time it was refunded but this complexity didn't seem to be part of this assessment, so I implemented it in a basic form. Since it would touch many more systems.
+I was initially thinking how I would factor in the slippage during that time it was purchased and the time it was refunded but this complexity didn't seem to be part of this assessment, so I implemented it in a basic form. Since it would touch many more systems that weren't part of this basic setup.
 
 ### Improvements
-- Refactored the Valr client out to an interface to avoid concrete implementation in tests
-- Split repositories to domain specific interfaces this to provide better separations of concerns. This removed the concrete dependencies for better testing and better extension.
+- Refactored the Valr client out to an interface to avoid concrete implementation in tests.
+- Split repositories to domain specific interfaces this to provide better separations of concerns and makes it possible to test using mocks. Also allows for alternative implementations if required. eg. Postgres
 - Renamed concrete repository implementations to provide better detail. 
 - Moved business logic to dedicated domain services for better separation of concerns and to avoid "fat" handlers, essentially I wanted to make handlers role to get requests, validate and respond only.
-- Removed duplication in response handling and moved response logic to single function so they can be reused.
+- Removed duplication in response handling and moved response logic to single function so they can be reused. Also centralized error handling.
 - Cleaned up hardcoded configs scattered across the code, and placed them into centralized config file
+- Added State machine for Payment state transitions
 
 ### Assumptions
-- Endpoint authentication was not considered, but would be in a real world application
-- Fee is charged on input. The customer's payAmount is reduced by the fee before conversion, regardless of side. So a BUY fee is in fiat, a SELL fee is in crypto.
+- `payAmount` on the quote request seems a bit ambiguous. When combined with `payCurrency` I assumed either that are saying I have X amount of counter, how much base can I get, or I want X amount of base, how much counter will I need? Slightly different contexts.
+- Did not consider min and max payment amounts in the project, but in the real world, this would be a consideration.
+- Endpoint authentication was not considered, but would be in a real application.
+- Fee is charged on input. The customer's payAmount is reduced by the fee before conversion, regardless of side. So I standardized it to always be in the counter.
 - Scale 8 for all crypto. Fine for BTC; some altcoins use 6 or even 18. pair-specific precision matters, you'd push it into config (per-pair or per-currency) rather   
   than a hardcoded 8.
 
 ### AI use
 - I used AI quite heavily for the Kotlin syntax and approaches.
 - Mostly asked it for feedback on implementation and Kotlin best practices, since most of my recent experience is Golang.
+- Helped with the state machine syntax.
 
 ### Given more time
-- **Atomic quote/payment writes via a single transaction or an outbox pattern. With the in-memory repo this is invisible, but against a real DB a crash between the two leaves quote state and payment state out of sync. The standard fix is to write both rows + an outbox event in a single transaction and let a relay publish downstream events — atomic from the service's perspective, eventually consistent for consumers.
+- **Atomic quote/payment writes via a single transaction or an outbox pattern. With the in-memory repo this is invisible, but against a real DB a crash between the two leaves quote state and payment state out of sync. The standard fix is to write both rows + an outbox event in a single transaction.
+- Basic event data stored in in-memory repo, would be better to use relational DB with transactions.

@@ -3,7 +3,7 @@ package com.exchange.router
 import com.exchange.handler.PaymentHandler
 import com.exchange.handler.QuoteHandler
 import com.exchange.model.ApiResponse
-import com.exchange.service.InvalidPaymentStatus
+import com.exchange.model.IllegalPaymentTransition
 import com.exchange.service.InvalidQuoteState
 import com.exchange.service.PaymentNotFoundException
 import com.exchange.service.QuoteNotFoundException
@@ -34,7 +34,8 @@ object PaymentRouter {
         router.post("/payments/:id/execute").handler { ctx -> paymentHandler.executePayment(ctx) }
         router.get("/payments/:id").handler { ctx -> paymentHandler.getPayment(ctx) }
 
-        // TODO: POST /payments/:id/refund — candidate implements this
+        // Implemented these
+        router.post("/payments/:id/refund").handler { ctx -> paymentHandler.refundPayment(ctx) }
         router.get("/payments/:id/status").handler { ctx -> paymentHandler.getPaymentStatus(ctx) }
 
         router.route().failureHandler { ctx -> handleFailure(ctx, objectMapper) }
@@ -53,8 +54,8 @@ object PaymentRouter {
                 400 to ApiResponse.error<Nothing>(failure.errors.joinToString(", "))
             is IllegalArgumentException ->
                 400 to ApiResponse.error<Nothing>(failure.message ?: "Invalid input")
-            is InvalidPaymentStatus ->
-                422 to ApiResponse.error<Nothing>(failure.message ?: "Payment already in progress")
+            is IllegalPaymentTransition ->
+                422 to ApiResponse.error<Nothing>(failure.message ?: "Payment cannot transition to that state")
             is InvalidQuoteState ->
                 422 to ApiResponse.error<Nothing>(failure.message ?: "Quote is not usable")
             else ->

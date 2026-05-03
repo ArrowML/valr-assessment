@@ -1,5 +1,6 @@
 package com.exchange.config
 
+import com.exchange.model.CurrencyPair
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
@@ -13,7 +14,7 @@ data class AppConfig(
 ) {
     data class Server(val port: Int)
     data class Exchange(val baseUrl: String)
-    data class Quotes(val supportedCurrencyPairs: Set<String>, val ttlSeconds: Long)
+    data class Quotes(val supportedPairs: Map<String, CurrencyPair>, val ttlSeconds: Long)
     data class Brokerage(val feePercent: BigDecimal)
 
     companion object {

@@ -15,6 +15,7 @@ data class Quote(
     val currencyPair: String,
     val price: BigDecimal,
     val payAmount: BigDecimal,
+    val payCurrency: String,
     val receiveAmount: BigDecimal,
     val fee: BigDecimal,
     val side: Side,

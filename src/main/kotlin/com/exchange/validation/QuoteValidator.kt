@@ -1,6 +1,7 @@
 package com.exchange.validation
 
 import com.exchange.handler.CreateQuoteRequest
+import com.exchange.model.CurrencyPair
 import com.exchange.model.Side
 import java.math.BigDecimal
 
@@ -11,17 +12,18 @@ data class ValidatedCreateQuote(
 )
 
 class QuoteValidator(
-    private val supportedCurrencyPairs: Set<String>,
+    private val supportedPairs: Map<String, CurrencyPair>,
 ) {
     fun validate(request: CreateQuoteRequest): ValidationResult<ValidatedCreateQuote> {
         val errors = mutableListOf<String>()
 
-        val currencyPair = request.currencyPair?.trim()?.takeIf { it.isNotBlank() }
+        val currencyPair = request.currencyPair?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
+        val pair = currencyPair?.let { supportedPairs[it] }
         when {
             currencyPair == null ->
                 errors.add("currencyPair is required")
-            currencyPair !in supportedCurrencyPairs ->
-                errors.add("currencyPair '$currencyPair' is not supported. Supported: ${supportedCurrencyPairs.joinToString()}")
+            pair == null ->
+                errors.add("currencyPair '$currencyPair' is not supported. Supported: ${supportedPairs.keys.joinToString()}")
         }
 
         val payAmount = request.payAmount?.let { runCatching { BigDecimal(it) }.getOrNull() }
@@ -37,6 +39,11 @@ class QuoteValidator(
         val side = runCatching { Side.from(request.side) }.getOrNull()
         if (side == null) {
             errors.add("side must be one of ${Side.entries.joinToString()}")
+        }
+
+        val payCurrency = request.payCurrency?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
+        if (payCurrency == null) {
+            errors.add("payCurrency is required")
         }
 
         return if (errors.isEmpty()) {

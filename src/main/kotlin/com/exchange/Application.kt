@@ -35,7 +35,7 @@ fun main() {
     val quoteRepository = InMemoryQuoteRepository()
 
     val paymentValidator = PaymentValidator()
-    val quoteValidator = QuoteValidator(config.quotes.supportedCurrencyPairs)
+    val quoteValidator = QuoteValidator(config.quotes.supportedPairs)
 
     val quoteService = QuoteService(
         quoteRepository,

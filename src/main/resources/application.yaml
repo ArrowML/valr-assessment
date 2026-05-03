@@ -5,10 +5,16 @@ exchange:
   baseUrl: https://api.valr.com/v1/public
 
 quotes:
-  supportedCurrencyPairs:
-    - BTCZAR
-    - ETHZAR
-    - USDCZAR
+  supportedPairs:
+    BTCZAR:
+      base: BTC
+      counter: ZAR
+    ETHZAR:
+      base: ETH
+      counter: ZAR
+    USDCZAR:
+      base: USDC
+      counter: ZAR
   ttlSeconds: 120
 
 brokerage:

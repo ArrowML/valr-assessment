@@ -2,7 +2,10 @@ package com.exchange.service
 
 
 import com.exchange.model.Payment
+import com.exchange.model.PaymentEvent
+import com.exchange.model.PaymentEventType
 import com.exchange.model.PaymentStatus
+import com.exchange.model.PaymentSummary
 import com.exchange.model.QuoteStatus
 import com.exchange.repository.payment.PaymentRepository
 import com.exchange.repository.quote.QuoteRepository
@@ -33,7 +36,13 @@ class PaymentService(
             quoteId = quoteId,
             customerReference = customerReference
         )
-        paymentRepository.savePayment(payment)
+        val createdEvent = PaymentEvent(
+            paymentId = payment.id,
+            eventType = PaymentEventType.CREATED,
+            fromStatus = null,
+            toStatus = payment.status,
+        )
+        paymentRepository.savePayment(payment, createdEvent)
 
         logger.info("Created payment {} for quote {}", payment.id, quoteId)
         return payment
@@ -43,37 +52,60 @@ class PaymentService(
         val payment = paymentRepository.findPayment(paymentId)
             ?: throw PaymentNotFoundException(paymentId)
 
+        if (payment.status == PaymentStatus.COMPLETED) return payment
+
         val quote = quoteRepository.findQuote(payment.quoteId)
             ?: throw QuoteNotFoundException(payment.quoteId)
 
-        when (payment.status) {
-            PaymentStatus.COMPLETED -> return payment
-            PaymentStatus.PENDING -> {
-                payment.status = PaymentStatus.PROCESSING
-                payment.updatedAt = Instant.now()
-                paymentRepository.updatePayment(payment)
+        val processingEvent = payment.transitionTo(PaymentStatus.PROCESSING)
+        paymentRepository.updatePayment(payment, processingEvent)
 
-                // Simulate async processing — in real life this would be an async operation
-                payment.status = PaymentStatus.COMPLETED
-                payment.updatedAt = Instant.now()
-                paymentRepository.updatePayment(payment)
+        // Simulate async processing — in real life this would be an async operation
+        val completedEvent = payment.transitionTo(PaymentStatus.COMPLETED)
+        paymentRepository.updatePayment(payment, completedEvent)
 
-                quote.status = QuoteStatus.COMPLETE
-                quoteRepository.updateQuote(quote)
+        quote.status = QuoteStatus.COMPLETE
+        quoteRepository.updateQuote(quote)
 
-                logger.info("Executed payment {}", paymentId)
-
-                return payment
-            }
-            PaymentStatus.PROCESSING,
-            PaymentStatus.FAILED,
-            PaymentStatus.REFUND_PROCESSING,
-            PaymentStatus.REFUNDED -> throw InvalidPaymentStatus(payment.id)
-        }
+        logger.info("Executed payment {}", paymentId)
+        return payment
     }
 
     fun getPayment(paymentId: String): Payment {
         return paymentRepository.findPayment(paymentId)
             ?: throw PaymentNotFoundException(paymentId)
+    }
+
+    fun refundPayment(paymentId: String): Payment {
+        val payment = paymentRepository.findPayment(paymentId)
+            ?: throw PaymentNotFoundException(paymentId)
+
+        val processingEvent = payment.transitionTo(PaymentStatus.REFUND_PROCESSING)
+        paymentRepository.updatePayment(payment, processingEvent)
+
+        // Simulate async processing — in real life this would be an async operation
+        // It would probably have to calculate the slippage and check balances.
+        val completedEvent = payment.transitionTo(PaymentStatus.REFUNDED)
+        paymentRepository.updatePayment(payment, completedEvent)
+
+        logger.info("Refunded payment {}", paymentId)
+
+        return payment
+    }
+
+    fun getPaymentStatus(paymentId: String): PaymentSummary {
+        val payment = paymentRepository.findPayment(paymentId)
+            ?: throw PaymentNotFoundException(paymentId)
+
+        val quote = quoteRepository.findQuote(payment.quoteId)
+            ?: throw QuoteNotFoundException(payment.quoteId)
+
+        val paymentEvents = paymentRepository.getPaymentEvents(payment.id)
+
+        return PaymentSummary(
+            status = payment.status,
+            history = paymentEvents,
+            quoteDetails = quote,
+        )
     }
 }

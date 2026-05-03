@@ -57,13 +57,25 @@ class PaymentHandler(
         }
     }
 
+    fun refundPayment(ctx: RoutingContext) {
+        try {
+            val paymentId = ctx.pathParam("id")
+            UuidValidation.requireValidUuid(paymentId, "paymentId")
+
+            val payment = paymentService.refundPayment(paymentId)
+            ctx.json(200, ApiResponse.ok(payment), objectMapper)
+        } catch (e: Exception) {
+            ctx.fail(e)
+        }
+    }
+
     fun getPaymentStatus(ctx: RoutingContext) {
         try {
             val paymentId = ctx.pathParam("id")
             UuidValidation.requireValidUuid(paymentId, "paymentId")
 
-            val payment = paymentService.getPayment(paymentId)
-            ctx.json(200, ApiResponse.ok(payment.status), objectMapper)
+            val paymentSummary = paymentService.getPaymentStatus(paymentId)
+            ctx.json(200, ApiResponse.ok(paymentSummary), objectMapper)
         } catch (e: Exception) {
             ctx.fail(e)
         }
