@@ -12,7 +12,7 @@ Updated `build.grandle.kts` to JDK version 21 to match my local
 - I found that quote expiry was not being considered after a payment had been created, this seems incorrect since the execute call, could be called later after significant price movement and still be successful. I added some additional state and expiry checks to the execute method on the payment service.
 
 ### Status endpoint approach
-The requirement to respond with payment history led me to an approach using some basic events. I felt this would be the simplest way to track the state transitions, essentially capturing an event with every update. In the real DB this would be done using transactions, but for this simple example I just implemented an additional map in the in memory DB as this would give us the ability to 
+The requirement to respond with payment transition history led me to an approach using some basic events. I felt this would be the simplest way to track the state changes, essentially capturing an event with every update. In the real DB this would be done using transactions, but for this simple example I just implemented an additional map in the in memory DB as this would give us the ability to lookup events for a payment. Using 
  
 ### Refund endpoint approach
 I was initially thinking how I would factor in the slippage during that time it was purchased and the time it was refunded but this complexity didn't seem to be part of this assessment, so my approach was to implement it in a basic form, and follow the example pattern established in the `execute` path. I figured, realistically it would touch many more systems that weren't part of this basic setup. 
@@ -21,23 +21,24 @@ I was initially thinking how I would factor in the slippage during that time it 
 My strategy for the testing was to separate the business logic and make that independently testable. So I wanted comprehensive test coverage of the Service layer and the Validation logic. This meant I could make testing the router and handler layer much simpler, as I only needed basic wiring tests, since most of the logic was covered in the service and validation tests.
 
 ### Improvements made
-- Refactored the ValrClient out to an interface to avoid concrete implementation in tests.
+- Refactored the ValrClient out to an interface to avoid concrete implementation and make testing possible.
 - Split repositories to domain specific interfaces this to provide better separations of concerns and makes it possible to test using mocks. Also allows for alternative implementations if required. eg. Postgres
 - Renamed concrete repository implementations to provide better detail. 
-- Moved business logic to dedicated domain services for better separation of concerns and to avoid "fat" handlers, essentially I wanted to make handlers role to get requests, validate and respond only. Also made writing tests for business logic easier.
-- Removed duplication in response handling and moved response logic to single function so they can be reused, also centralized error handling.
-- Cleaned up hardcoded configs scattered across the code, and placed them into centralized config file
-- Added State machine for Payment state transitions
+- Moved business logic to dedicated domain services for better separation of concerns and to avoid "fat" handlers, essentially I wanted to simplify the handlers role to just get requests, validate and respond only. Also made writing tests for business logic easier if moved to individual service class.
+- Removed duplication in response handling and moved response logic to single function so they can be reused, also centralized error handling. This was to make response handling consistent across handlers.
+- Cleaned up hardcoded configs scattered across the code, and placed them into centralized config file to maker it easier to find and update if needed.
+- Added state machine for Payments to control transitions and build obvious logic to track workflow.
 - Added Quote status to help track claimed quotes, to help ensure idempotent payments
-- Added graceful shutdown
+- Added graceful shutdown to hard stops in the service.
 
 ### Assumptions
+- Decided to keep the basic in-memory repo, makes sense for this small project.
 - When creating a quote, I assumed `payCurrency` was just serving as a record for the quote, and did not factor into the calculation, but in a real app this would be able to support additional payment currencies.
-- Did not consider min and max payment amounts in the project, but in the real world, this would be a consideration.
+- Did not consider min and max payment amounts in the project, but in the real world, this would be a consideration driven by business requirements. 
 - Endpoint authentication was not considered, but would be in a real application.
 - Fee is charged on input. The customer's payAmount is reduced by the fee before conversion, regardless of side.
 - Scale 8 for all crypto. Fine for BTC; some altcoins use up to 18. pair-specific precision matters, I would extend this with additional currency config, rather than a hardcoded 8.
-- Left the responses wrapped in the "data" 
+- Left the data responses object wrapped in the "data" field, seems it was designed this way and works well.
 
 ### AI use
 - I used Claude Code in my IDE for some assistance with this. Mostly using prompts to double-check my thinking or implementations.
