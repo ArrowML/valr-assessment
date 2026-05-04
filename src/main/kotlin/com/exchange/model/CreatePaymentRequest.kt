@@ -1,4 +1,4 @@
-package com.exchange.handler
+package com.exchange.model
 
 data class CreatePaymentRequest(
     val quoteId: String? = null,

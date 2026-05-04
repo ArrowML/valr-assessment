@@ -1,6 +1,6 @@
 package com.exchange.validation
 
-import com.exchange.handler.CreateQuoteRequest
+import com.exchange.model.CreateQuoteRequest
 import com.exchange.model.CurrencyPair
 import com.exchange.model.Side
 import java.math.BigDecimal
@@ -8,6 +8,7 @@ import java.math.BigDecimal
 data class ValidatedCreateQuote(
     val currencyPair: String,
     val payAmount: BigDecimal,
+    val payCurrency: String,
     val side: Side,
 )
 
@@ -19,6 +20,7 @@ class QuoteValidator(
 
         val currencyPair = request.currencyPair?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
         val pair = currencyPair?.let { supportedPairs[it] }
+
         when {
             currencyPair == null ->
                 errors.add("currencyPair is required")
@@ -26,7 +28,7 @@ class QuoteValidator(
                 errors.add("currencyPair '$currencyPair' is not supported. Supported: ${supportedPairs.keys.joinToString()}")
         }
 
-        val payAmount = request.payAmount?.let { runCatching { BigDecimal(it) }.getOrNull() }
+        val payAmount = request.payAmount?.trim()?.let { runCatching { BigDecimal(it) }.getOrNull() }
         when {
             request.payAmount.isNullOrBlank() ->
                 errors.add("payAmount is required")
@@ -46,11 +48,23 @@ class QuoteValidator(
             errors.add("payCurrency is required")
         }
 
+        // Assume payCurrency is fiat counter on BUY and Crypto Base on Sell
+        if (payCurrency != null && pair != null && side != null) {
+            if (side == Side.BUY && payCurrency != pair.counter) {
+                errors.add("payCurrency should be '${pair.counter}' on BUY")
+            }
+
+            if (side == Side.SELL && payCurrency != pair.base) {
+                errors.add("payCurrency should be '${pair.base}' on SELL")
+            }
+        }
+
         return if (errors.isEmpty()) {
             ValidationResult.Valid(
                 ValidatedCreateQuote(
                     currencyPair = currencyPair!!,
                     payAmount = payAmount!!,
+                    payCurrency = payCurrency!!,
                     side = side!!,
                 )
             )

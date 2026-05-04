@@ -1,4 +1,4 @@
-package com.exchange.handler
+package com.exchange.model
 
 data class CreateQuoteRequest(
     val currencyPair: String? = null,

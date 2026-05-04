@@ -17,7 +17,7 @@ class QuoteService(
 ) {
     private val logger = LoggerFactory.getLogger(QuoteService::class.java)
 
-    fun createQuote(currencyPair: String, payAmount: BigDecimal, side: Side): Quote {
+    fun createQuote(currencyPair: String, payAmount: BigDecimal, payCurrency: String, side: Side): Quote {
         val marketPrice = exchangeClient.getMarketPrice(currencyPair)
 
         val fee = payAmount.multiply(brokerageFeePercent)
@@ -35,6 +35,7 @@ class QuoteService(
             currencyPair = currencyPair,
             price = marketPrice,
             payAmount = payAmount,
+            payCurrency = payCurrency,
             receiveAmount = receiveAmount,
             fee = fee,
             side = side,

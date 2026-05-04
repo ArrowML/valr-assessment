@@ -5,7 +5,7 @@ import com.exchange.model.Payment
 import com.exchange.model.PaymentEvent
 import com.exchange.model.PaymentEventType
 import com.exchange.model.PaymentStatus
-import com.exchange.model.PaymentSummary
+import com.exchange.model.PaymentStatusResponse
 import com.exchange.model.QuoteStatus
 import com.exchange.repository.payment.PaymentRepository
 import com.exchange.repository.quote.QuoteRepository
@@ -57,6 +57,20 @@ class PaymentService(
         val quote = quoteRepository.findQuote(payment.quoteId)
             ?: throw QuoteNotFoundException(payment.quoteId)
 
+        if (quote.status != QuoteStatus.CLAIMED) {
+            val processingEvent = payment.transitionTo(PaymentStatus.FAILED)
+            paymentRepository.updatePayment(payment, processingEvent)
+
+            throw InvalidQuoteState(quote.id, "quote is ${quote.status}")
+        }
+
+        if (Instant.now().isAfter(quote.expiresAt)) {
+            val processingEvent = payment.transitionTo(PaymentStatus.FAILED)
+            paymentRepository.updatePayment(payment, processingEvent)
+
+            throw InvalidQuoteState(quote.id, "quote expired at ${quote.expiresAt}")
+        }
+
         val processingEvent = payment.transitionTo(PaymentStatus.PROCESSING)
         paymentRepository.updatePayment(payment, processingEvent)
 
@@ -93,7 +107,7 @@ class PaymentService(
         return payment
     }
 
-    fun getPaymentStatus(paymentId: String): PaymentSummary {
+    fun getPaymentStatus(paymentId: String): PaymentStatusResponse {
         val payment = paymentRepository.findPayment(paymentId)
             ?: throw PaymentNotFoundException(paymentId)
 
@@ -102,7 +116,7 @@ class PaymentService(
 
         val paymentEvents = paymentRepository.getPaymentEvents(payment.id)
 
-        return PaymentSummary(
+        return PaymentStatusResponse(
             status = payment.status,
             history = paymentEvents,
             quoteDetails = quote,

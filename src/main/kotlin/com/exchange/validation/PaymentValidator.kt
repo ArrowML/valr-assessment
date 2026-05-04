@@ -1,6 +1,6 @@
 package com.exchange.validation
 
-import com.exchange.handler.CreatePaymentRequest
+import com.exchange.model.CreatePaymentRequest
 
 data class ValidatedCreatePayment(
     val quoteId: String,

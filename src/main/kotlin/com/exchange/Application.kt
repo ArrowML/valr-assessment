@@ -17,6 +17,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.vertx.core.Vertx
 import org.slf4j.LoggerFactory
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 private val logger = LoggerFactory.getLogger("Application")
 
@@ -53,6 +55,18 @@ fun main() {
     vertx.createHttpServer()
         .requestHandler(router)
         .listen(config.server.port)
+        .onSuccess { server -> logger.info("Server started on port {}", server.actualPort()) }
+        .onFailure { e ->
+            logger.error("Failed to start server on port {}", config.server.port, e)
+            vertx.close()
+        }
 
-    logger.info("Server started on port {}", config.server.port)
+    Runtime.getRuntime().addShutdownHook(Thread {
+        logger.info("Shutting down")
+        val latch = CountDownLatch(1)
+        vertx.close().onComplete { latch.countDown() }
+        if (!latch.await(30, TimeUnit.SECONDS)) {
+            logger.warn("Shutdown timed out after 30s")
+        }
+    })
 }

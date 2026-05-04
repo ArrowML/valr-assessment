@@ -1,6 +1,6 @@
 package com.exchange.validation
 
-import com.exchange.handler.CreatePaymentRequest
+import com.exchange.model.CreatePaymentRequest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -17,12 +17,17 @@ class PaymentValidatorTest {
 
     @Test
     fun `should pass validation for valid input`() {
+        val uuid = UUID.randomUUID().toString()
         val request = CreatePaymentRequest(
-            quoteId = UUID.randomUUID().toString(),
+            quoteId = uuid,
             customerReference = "customer-ref",
         )
         val result = validator.validate(request)
         assertThat(result).isInstanceOf(ValidationResult.Valid::class.java)
+        assertThat((result as ValidationResult.Valid).value).isEqualTo(ValidatedCreatePayment(
+            quoteId = uuid,
+            customerReference = "customer-ref",
+        ))
     }
 
     @Test
@@ -30,7 +35,31 @@ class PaymentValidatorTest {
         val request = CreatePaymentRequest(quoteId = null, customerReference = "customer-ref")
         val result = validator.validate(request)
         assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
-        assertThat((result as ValidationResult.Invalid).errors).contains("quoteId is required")
+        assertThat((result as ValidationResult.Invalid).errors).containsExactly("quoteId is required")
+    }
+
+    @Test
+    fun `should fail when quoteId is empty`() {
+        val request = CreatePaymentRequest(quoteId = " ", customerReference = "customer-ref")
+        val result = validator.validate(request)
+        assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
+        assertThat((result as ValidationResult.Invalid).errors).containsExactly("quoteId is required")
+    }
+
+    @Test
+    fun `should fail when customerReference is null`() {
+        val request = CreatePaymentRequest(quoteId = UUID.randomUUID().toString(), customerReference = null)
+        val result = validator.validate(request)
+        assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
+        assertThat((result as ValidationResult.Invalid).errors).containsExactly("customerReference is required")
+    }
+
+    @Test
+    fun `should fail when customerReference is empty`() {
+        val request = CreatePaymentRequest(quoteId = UUID.randomUUID().toString(), customerReference = " ")
+        val result = validator.validate(request)
+        assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
+        assertThat((result as ValidationResult.Invalid).errors).containsExactly("customerReference is required")
     }
 
     @Test
@@ -38,6 +67,6 @@ class PaymentValidatorTest {
         val request = CreatePaymentRequest(quoteId = "not-a-uuid", customerReference = "customer-ref")
         val result = validator.validate(request)
         assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
-        assertThat((result as ValidationResult.Invalid).errors).contains("quoteId must be a valid UUID")
+        assertThat((result as ValidationResult.Invalid).errors).containsExactly("quoteId must be a valid UUID")
     }
 }
