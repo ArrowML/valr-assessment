@@ -56,3 +56,5 @@ My strategy for the testing was to separate the business logic and make that ind
 - UUID validation on some of the endpoints are done inline, ideally on larger projects all validation should be consistent.
 - UUID's in the status events seems unnecessary to include as part of the response. But for simplicity I re-used basic entity models, but a better approach would be to have been to have different models for each "layer", API request and response models for Handlers, DTO models for services layer and Entity Models for DB layer.
 - Would implement state transitions on quotes in the same pattern as payments using events.
+- [Late update] The ValrClient would also need proper implementation, Specifically we would need to implement a class that can handle http retries and a circuit breaker system to avoid calls to failing endpoints, and handle them gracefully.
+- [Late update] There is also no observability in this project in the way of traces or metrics, Fine for a small assessment project, but a real world project would need to have this built in.
