@@ -2,10 +2,11 @@ package com.exchange.repository.payment
 
 import com.exchange.model.Payment
 import com.exchange.model.PaymentEvent
+import java.util.concurrent.ConcurrentHashMap
 
 class InMemoryPaymentRepository : PaymentRepository {
-    private val payments = HashMap<String, Payment>()
-    private val paymentEvents = HashMap<String, PaymentEvent>()
+    private val payments = ConcurrentHashMap<String, Payment>()
+    private val paymentEvents = ConcurrentHashMap<String, PaymentEvent>()
 
     override fun savePayment(payment: Payment, event: PaymentEvent) {
         payments[payment.id] = payment

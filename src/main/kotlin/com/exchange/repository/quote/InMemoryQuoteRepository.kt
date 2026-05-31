@@ -1,11 +1,12 @@
 package com.exchange.repository.quote
 
 import com.exchange.model.Quote
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
 
 class InMemoryQuoteRepository : QuoteRepository {
 
-    private val quotes = HashMap<String, Quote>()
+    private val quotes = ConcurrentHashMap<String, Quote>()
 
     override fun saveQuote(quote: Quote) {
         quotes[quote.id] = quote

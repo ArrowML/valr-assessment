@@ -32,7 +32,7 @@ fun main() {
         .registerModule(JavaTimeModule())
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
-    val exchangeClient = ValrClient(config.exchange.baseUrl)
+    val exchangeClient = ValrClient(config.exchange.baseUrl, vertx)
     val paymentRepository = InMemoryPaymentRepository()
     val quoteRepository = InMemoryQuoteRepository()
 

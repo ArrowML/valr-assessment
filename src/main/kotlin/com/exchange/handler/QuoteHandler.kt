@@ -34,17 +34,13 @@ class QuoteHandler(
             is ValidationResult.Valid -> result.value
         }
 
-        val createQuote = Callable<Quote> {
-            quoteService.createQuote(
-                validated.currencyPair,
-                validated.payAmount,
-                validated.payCurrency,
-                validated.side,
-            )
-        }
-
-        ctx.vertx().executeBlocking(createQuote, false)
-            .onSuccess { quote -> ctx.json(201, ApiResponse.ok(quote), objectMapper) }
-            .onFailure { e -> ctx.fail(e) }
+        quoteService.createQuote(
+            validated.currencyPair,
+            validated.payAmount,
+            validated.payCurrency,
+            validated.side,
+        )
+        .onSuccess { quote -> ctx.json(201, ApiResponse.ok(quote), objectMapper) }
+        .onFailure { e -> ctx.fail(e) }
     }
 }
